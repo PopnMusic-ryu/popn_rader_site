@@ -1,0 +1,24 @@
+{
+  "name": "popn_rader_site",
+  "version": "1.0.0",
+  "description": "pop'n music radar viewer web app",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "compression": "^1.8.1",
+    "csv-parse": "^6.1.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2"
+  }
+}

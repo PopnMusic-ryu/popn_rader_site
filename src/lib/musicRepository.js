@@ -148,7 +148,7 @@ function findRadarImageFile(songDir) {
 
 function toSongSummary(song, options = {}) {
   const radarImageUrl = song.radarImageFileName
-    ? `/media/${song.level}/${encodeURIComponent(song.img)}/${encodeURIComponent(
+    ? `media/${song.level}/${encodeURIComponent(song.img)}/${encodeURIComponent(
         song.radarImageFileName
       )}`
     : null;
@@ -167,6 +167,13 @@ function toSongSummary(song, options = {}) {
     radarImageUrl,
     ranking: Number.isInteger(options.ranking) ? options.ranking : null,
     rankBy: isValidRankBy(options.rankBy) ? options.rankBy : null,
+  };
+}
+
+function toSongDetail(song) {
+  return {
+    ...toSongSummary(song),
+    radar: song.radar,
   };
 }
 
@@ -272,10 +279,11 @@ class MusicRepository {
       return null;
     }
 
-    return {
-      ...toSongSummary(song),
-      radar: song.radar,
-    };
+    return toSongDetail(song);
+  }
+
+  getAllSongs() {
+    return this.songs.map(toSongDetail);
   }
 }
 

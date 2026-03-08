@@ -46,6 +46,33 @@ docs/
 npm test
 ```
 
+## GitHub Pages 公開
+
+### 1. 静的サイトをビルド
+
+```bash
+npm run build:pages
+```
+
+生成物は `dist/` です。  
+`dist/data/meta.json`, `dist/data/songs.json`, `dist/media/...` が作成されます。
+
+### 2. GitHub 側設定
+
+- リポジトリの `Settings > Pages` を開く
+- `Source` を `GitHub Actions` に設定
+- `main` または `master` へ push
+
+`.github/workflows/deploy-pages.yml` により自動デプロイされます。
+
+### 3. ローカルで静的確認（任意）
+
+```bash
+npm run build:pages
+npx serve dist
+```
+
 ## 補足
 - `music/` 配下は `IMG` 列の値をフォルダ名として参照します。
 - レーダー画像が無い楽曲は、詳細画面で画像無し表示になります。
+- GitHub Pages では API の代わりに `data/*.json` を使って動作します。

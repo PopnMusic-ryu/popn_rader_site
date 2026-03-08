@@ -4,6 +4,7 @@
 - 構成: Node.js + Express + Vanilla JS
 - データ取得: サーバ起動時に `music/` を走査し、CSVとJSONを統合してメモリ保持
 - 画面: `public/` の静的ファイルで描画し、`/api/*` をFetchで利用
+- GitHub Pages対応: APIが使えない環境では `data/meta.json` と `data/songs.json` をクライアントで参照するフォールバック方式
 
 ## ディレクトリ設計
 - `src/config.js`: 環境変数と設定値
@@ -42,3 +43,10 @@
 - 圧縮配信（`compression`）
 - 画像静的配信キャッシュ（`/media`）
 - クライアント検索入力のデバウンス
+
+## GitHub Pages ビルド設計
+- `npm run build:pages` で `dist/` を生成
+- `public/` をコピー
+- `music/` を `dist/media/` にコピー
+- リポジトリ集約データを `dist/data/*.json` に書き出し
+- `404.html` と `.nojekyll` を生成

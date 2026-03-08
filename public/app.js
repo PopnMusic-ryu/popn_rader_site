@@ -1,3 +1,5 @@
+const DEFAULT_LIMIT = 120;
+
 const state = {
   query: "",
   level: "",
@@ -6,6 +8,10 @@ const state = {
   items: [],
   totalMatched: 0,
   activeSongId: null,
+  dataSource: "api",
+  staticMeta: null,
+  staticSongs: [],
+  staticSongMap: new Map(),
 };
 
 const dom = {
@@ -20,7 +26,6 @@ const dom = {
   adminMessage: document.querySelector("#admin-message"),
   contactLink: document.querySelector("#contact-link"),
   detailModal: document.querySelector("#detail-modal"),
-  modalClose: document.querySelector("#modal-close"),
   modalTitle: document.querySelector("#modal-title"),
   modalRadarImage: document.querySelector("#modal-radar-image"),
   radarImageFallback: document.querySelector("#radar-image-fallback"),
@@ -45,6 +50,14 @@ const RANK_LABELS = Object.freeze({
   soflan: "SOF-LAN",
 });
 
+const RANK_TO_RADAR_FIELD = Object.freeze({
+  notes: "total_notes",
+  chord: "total_chords",
+  peak: "max_notes_calc",
+  longpop: "longpop",
+  soflan: "soflan",
+});
+
 function debounce(fn, waitMs) {
   let timer = null;
   return (...args) => {
@@ -67,6 +80,16 @@ function getRankLabel(rankBy) {
   return RANK_LABELS[rankBy] ?? String(rankBy).toUpperCase();
 }
 
+function resolveAssetUrl(url) {
+  if (!url) {
+    return "";
+  }
+  if (/^(https?:)?\/\//i.test(url) || url.startsWith("data:")) {
+    return url;
+  }
+  return new URL(url, window.location.href).toString();
+}
+
 function getMainDisplayText(song) {
   if (state.primaryView === "genre") {
     return song.genre || "-";
@@ -81,40 +104,82 @@ function getSecondaryDisplayText(song) {
   return song.genre || "-";
 }
 
-function createSongCard(song) {
-  const card = document.createElement("li");
-  card.className = "song-card";
+function tokenizeQuery(query) {
+  return String(query ?? "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 8);
+}
 
-  const title = document.createElement("h3");
-  title.textContent = getMainDisplayText(song);
+function createSearchText(song) {
+  return [
+    song.ver,
+    song.genre,
+    song.title,
+    song.img,
+    song.level,
+    song.bpm,
+    song.len,
+    song.notes,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
 
-  let rank = null;
-  if (Number.isInteger(song.ranking) && song.ranking > 0 && song.rankBy) {
-    rank = document.createElement("p");
-    rank.className = "song-rank";
-    rank.textContent = `${getRankLabel(song.rankBy)} Rank #${song.ranking}`;
+function getRadarMetricValue(song, rankBy) {
+  if (!rankBy || !song || !song.radar) {
+    return null;
   }
-
-  const meta = document.createElement("p");
-  meta.className = "song-meta";
-  meta.textContent = `${getSecondaryDisplayText(song)} / Lv${song.level} / BPM ${
-    song.bpm
-  } / NOTES ${formatNumber(song.notes)}`;
-
-  const detailButton = document.createElement("button");
-  detailButton.type = "button";
-  detailButton.className = "detail-button";
-  detailButton.textContent = "詳細を見る";
-  detailButton.addEventListener("click", () => {
-    void openSongDetail(song.level, song.img);
-  });
-
-  if (rank) {
-    card.append(title, rank, meta, detailButton);
-  } else {
-    card.append(title, meta, detailButton);
+  const field = RANK_TO_RADAR_FIELD[rankBy];
+  if (!field) {
+    return null;
   }
-  return card;
+  const numeric = Number(song.radar[field]);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function compareDefault(a, b) {
+  if (a.level !== b.level) {
+    return b.level - a.level;
+  }
+  return String(a.title ?? "").localeCompare(String(b.title ?? ""), "ja");
+}
+
+function compareByRank(rankBy) {
+  return (a, b) => {
+    const aValue = getRadarMetricValue(a, rankBy);
+    const bValue = getRadarMetricValue(b, rankBy);
+    const aHasValue = aValue !== null;
+    const bHasValue = bValue !== null;
+
+    if (aHasValue && bHasValue && aValue !== bValue) {
+      return bValue - aValue;
+    }
+    if (aHasValue !== bHasValue) {
+      return aHasValue ? -1 : 1;
+    }
+    return compareDefault(a, b);
+  };
+}
+
+function toStaticSummary(song, options = {}) {
+  return {
+    id: song.id ?? `${song.level}:${song.img}`,
+    level: song.level,
+    ver: song.ver,
+    genre: song.genre,
+    title: song.title,
+    img: song.img,
+    bpm: song.bpm,
+    len: song.len,
+    notes: song.notes,
+    hasRadarImage: Boolean(song.radarImageUrl),
+    radarImageUrl: song.radarImageUrl ?? null,
+    ranking: Number.isInteger(options.ranking) ? options.ranking : null,
+    rankBy: options.rankBy || null,
+  };
 }
 
 function renderSongs() {
@@ -122,32 +187,55 @@ function renderSongs() {
 
   const fragment = document.createDocumentFragment();
   for (const song of state.items) {
-    fragment.append(createSongCard(song));
-  }
-  dom.songList.append(fragment);
+    const card = document.createElement("li");
+    card.className = "song-card";
 
+    const title = document.createElement("h3");
+    title.textContent = getMainDisplayText(song);
+
+    const meta = document.createElement("p");
+    meta.className = "song-meta";
+    meta.textContent = `${getSecondaryDisplayText(song)} / Lv${song.level} / BPM ${
+      song.bpm
+    } / NOTES ${formatNumber(song.notes)}`;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "detail-button";
+    button.textContent = "詳細を見る";
+    button.addEventListener("click", () => {
+      void openSongDetail(song.level, song.img);
+    });
+
+    if (Number.isInteger(song.ranking) && song.ranking > 0 && song.rankBy) {
+      const rank = document.createElement("p");
+      rank.className = "song-rank";
+      rank.textContent = `${getRankLabel(song.rankBy)} Rank #${song.ranking}`;
+      card.append(title, rank, meta, button);
+    } else {
+      card.append(title, meta, button);
+    }
+
+    fragment.append(card);
+  }
+
+  dom.songList.append(fragment);
   dom.emptyState.hidden = state.items.length !== 0;
 
   const rankingText = state.rankBy
     ? ` / ${getRankLabel(state.rankBy)}ランキング順`
     : "";
-  const countText = `${state.totalMatched.toLocaleString(
+  dom.resultSummary.textContent = `${state.totalMatched.toLocaleString(
     "ja-JP"
   )} 件ヒット / ${state.items.length.toLocaleString("ja-JP")} 件表示${rankingText}`;
-  dom.resultSummary.textContent = countText;
 }
 
-async function fetchMeta() {
-  const response = await fetch("/api/meta");
-  if (!response.ok) {
-    throw new Error("failed to load meta");
-  }
-  const meta = await response.json();
-  dom.adminMessage.textContent = meta.adminMessage ?? "";
-  dom.contactLink.href = meta.contactFormUrl ?? "#";
+function applyMeta(meta) {
+  dom.adminMessage.textContent = meta?.adminMessage ?? "";
+  dom.contactLink.href = meta?.contactFormUrl ?? "#";
 }
 
-async function fetchSongs() {
+function buildApiSongsUrl() {
   const params = new URLSearchParams();
   if (state.query.trim()) {
     params.set("q", state.query.trim());
@@ -158,16 +246,116 @@ async function fetchSongs() {
   if (state.rankBy) {
     params.set("rankBy", state.rankBy);
   }
+  const query = params.toString();
+  return query ? `api/songs?${query}` : "api/songs";
+}
 
-  const response = await fetch(`/api/songs?${params.toString()}`);
+async function fetchJsonOrThrow(url) {
+  const response = await fetch(url);
   if (!response.ok) {
-    throw new Error("failed to load songs");
+    throw new Error(`request failed: ${url}`);
   }
-  const payload = await response.json();
-  state.items = payload.items ?? [];
-  state.totalMatched = payload.totalMatched ?? state.items.length;
-  state.rankBy = payload.rankBy || "";
-  renderSongs();
+  return response.json();
+}
+
+async function ensureStaticDataLoaded() {
+  if (state.staticSongs.length > 0 && state.staticMeta) {
+    return;
+  }
+
+  const [meta, songsPayload] = await Promise.all([
+    fetchJsonOrThrow("data/meta.json"),
+    fetchJsonOrThrow("data/songs.json"),
+  ]);
+
+  const items = Array.isArray(songsPayload)
+    ? songsPayload
+    : Array.isArray(songsPayload?.items)
+      ? songsPayload.items
+      : [];
+
+  state.staticMeta = meta;
+  state.staticSongs = items;
+  state.staticSongMap = new Map(
+    items.map((song) => [`${song.level}:${song.img}`, song])
+  );
+}
+
+async function switchToStaticMode() {
+  await ensureStaticDataLoaded();
+  state.dataSource = "static";
+}
+
+function runStaticSearch() {
+  const tokens = tokenizeQuery(state.query);
+  const levelNumber = state.level ? Number.parseInt(state.level, 10) : null;
+  const rankBy = state.rankBy || "";
+
+  let filtered = state.staticSongs;
+
+  if (Number.isInteger(levelNumber)) {
+    filtered = filtered.filter((song) => Number(song.level) === levelNumber);
+  }
+
+  if (tokens.length > 0) {
+    filtered = filtered.filter((song) => {
+      const searchText = createSearchText(song);
+      return tokens.every((token) => searchText.includes(token));
+    });
+  }
+
+  if (rankBy) {
+    filtered = [...filtered].sort(compareByRank(rankBy));
+  } else {
+    filtered = [...filtered].sort(compareDefault);
+  }
+
+  const rankingMap = rankBy
+    ? new Map(filtered.map((song, index) => [`${song.level}:${song.img}`, index + 1]))
+    : null;
+
+  state.totalMatched = filtered.length;
+  state.items = filtered.slice(0, DEFAULT_LIMIT).map((song) =>
+    toStaticSummary(song, {
+      rankBy: rankBy || null,
+      ranking: rankingMap ? rankingMap.get(`${song.level}:${song.img}`) : null,
+    })
+  );
+}
+
+async function fetchMeta() {
+  if (state.dataSource === "static") {
+    applyMeta(state.staticMeta);
+    return;
+  }
+
+  try {
+    const meta = await fetchJsonOrThrow("api/meta");
+    applyMeta(meta);
+  } catch (_error) {
+    await switchToStaticMode();
+    applyMeta(state.staticMeta);
+  }
+}
+
+async function fetchSongs() {
+  if (state.dataSource === "static") {
+    runStaticSearch();
+    renderSongs();
+    return;
+  }
+
+  try {
+    const payload = await fetchJsonOrThrow(buildApiSongsUrl());
+    state.items = payload.items ?? [];
+    state.totalMatched = payload.totalMatched ?? state.items.length;
+    state.rankBy = payload.rankBy || "";
+    renderSongs();
+  } catch (_error) {
+    await switchToStaticMode();
+    runStaticSearch();
+    renderSongs();
+  }
 }
 
 function resetModalFields() {
@@ -198,6 +386,32 @@ function closeModal() {
   document.body.style.overflow = "";
 }
 
+function fillModal(song) {
+  dom.modalTitle.textContent = `${song.title ?? "-"} の詳細`;
+  dom.modalSongTitle.textContent = song.title ?? "-";
+  dom.modalSongGenre.textContent = song.genre ?? "-";
+  dom.modalSongLevel.textContent = String(song.level ?? "-");
+  dom.modalSongBpm.textContent = song.bpm ?? "-";
+  dom.modalSongLen.textContent = song.len ?? "-";
+  dom.modalSongNotes.textContent = formatNumber(song.notes);
+
+  const radar = song.radar ?? {};
+  dom.radarTotalNotes.textContent = formatNumber(radar.total_notes);
+  dom.radarTotalChords.textContent = formatNumber(radar.total_chords);
+  dom.radarMaxNotes.textContent = formatNumber(radar.max_notes_calc);
+  dom.radarLongpop.textContent = formatNumber(radar.longpop);
+  dom.radarSoflan.textContent = formatNumber(radar.soflan);
+
+  if (song.radarImageUrl) {
+    dom.radarImageFallback.hidden = true;
+    dom.modalRadarImage.hidden = false;
+    dom.modalRadarImage.src = resolveAssetUrl(song.radarImageUrl);
+  } else {
+    dom.modalRadarImage.hidden = true;
+    dom.radarImageFallback.hidden = false;
+  }
+}
+
 async function openSongDetail(level, img) {
   const songId = `${level}:${img}`;
   state.activeSongId = songId;
@@ -205,46 +419,36 @@ async function openSongDetail(level, img) {
   dom.modalTitle.textContent = "読み込み中...";
   showModal();
 
-  try {
-    const response = await fetch(
-      `/api/songs/${encodeURIComponent(level)}/${encodeURIComponent(img)}`
-    );
-    if (!response.ok) {
+  if (state.dataSource === "static") {
+    const song = state.staticSongMap.get(songId);
+    if (!song) {
       dom.modalTitle.textContent = "読み込みエラー";
       return;
     }
+    fillModal(song);
+    return;
+  }
 
-    const song = await response.json();
+  try {
+    const song = await fetchJsonOrThrow(
+      `api/songs/${encodeURIComponent(level)}/${encodeURIComponent(img)}`
+    );
     if (state.activeSongId !== songId) {
       return;
     }
-
-    dom.modalTitle.textContent = `${song.title} の詳細`;
-    dom.modalSongTitle.textContent = song.title ?? "-";
-    dom.modalSongGenre.textContent = song.genre ?? "-";
-    dom.modalSongLevel.textContent = String(song.level ?? "-");
-    dom.modalSongBpm.textContent = song.bpm ?? "-";
-    dom.modalSongLen.textContent = song.len ?? "-";
-    dom.modalSongNotes.textContent = formatNumber(song.notes);
-
-    const radar = song.radar ?? {};
-    dom.radarTotalNotes.textContent = formatNumber(radar.total_notes);
-    dom.radarTotalChords.textContent = formatNumber(radar.total_chords);
-    dom.radarMaxNotes.textContent = formatNumber(radar.max_notes_calc);
-    dom.radarSoflan.textContent = formatNumber(radar.soflan);
-    dom.radarLongpop.textContent = formatNumber(radar.longpop);
-
-    if (song.radarImageUrl) {
-      dom.radarImageFallback.hidden = true;
-      dom.modalRadarImage.hidden = false;
-      dom.modalRadarImage.src = song.radarImageUrl;
-    } else {
-      dom.modalRadarImage.hidden = true;
-      dom.radarImageFallback.hidden = false;
+    fillModal(song);
+  } catch (_error) {
+    try {
+      await switchToStaticMode();
+      const song = state.staticSongMap.get(songId);
+      if (!song) {
+        dom.modalTitle.textContent = "読み込みエラー";
+        return;
+      }
+      fillModal(song);
+    } catch (_staticError) {
+      dom.modalTitle.textContent = "読み込みエラー";
     }
-  } catch (error) {
-    console.error(error);
-    dom.modalTitle.textContent = "読み込みエラー";
   }
 }
 

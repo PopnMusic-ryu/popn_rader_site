@@ -129,9 +129,28 @@ function createSearchText(song) {
 }
 
 function getRadarMetricValue(song, rankBy) {
-  if (!rankBy || !song || !song.radar) {
+  if (!rankBy || !song) {
     return null;
   }
+
+  if (rankBy === "notes") {
+    const radarNotes = Number(song.radar?.total_notes);
+    if (Number.isFinite(radarNotes)) {
+      return radarNotes;
+    }
+
+    const csvNotes = Number(song.notes);
+    if (Number.isFinite(csvNotes)) {
+      return csvNotes;
+    }
+
+    return null;
+  }
+
+  if (!song.radar) {
+    return null;
+  }
+
   const field = RANK_TO_RADAR_FIELD[rankBy];
   if (!field) {
     return null;

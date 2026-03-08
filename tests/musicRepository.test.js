@@ -43,3 +43,48 @@ test("MusicRepository.search supports radar ranking", () => {
   assert.equal(ranked.items[0].ranking, 1);
   assert.equal(ranked.items[0].rankBy, "notes");
 });
+
+test("MusicRepository.search notes ranking falls back to CSV notes", () => {
+  const repository = new MusicRepository([
+    {
+      id: "50:has_radar",
+      level: 50,
+      ver: "[X]",
+      genre: "genre A",
+      title: "title A",
+      img: "has_radar",
+      bpm: "180",
+      len: "2:00",
+      notes: 1200,
+      radar: {
+        total_notes: 1100,
+        total_chords: 100,
+        max_notes_calc: 30,
+        soflan: 5,
+        longpop: 1,
+      },
+      radarImageFileName: null,
+      _searchText: "title a",
+    },
+    {
+      id: "50:no_radar",
+      level: 50,
+      ver: "[X]",
+      genre: "genre B",
+      title: "title B",
+      img: "no_radar",
+      bpm: "180",
+      len: "2:00",
+      notes: 1500,
+      radar: null,
+      radarImageFileName: null,
+      _searchText: "title b",
+    },
+  ]);
+
+  const ranked = repository.search({ rankBy: "notes", limit: 10 });
+  assert.equal(ranked.totalMatched, 2);
+  assert.equal(ranked.items[0].img, "no_radar");
+  assert.equal(ranked.items[0].ranking, 1);
+  assert.equal(ranked.items[1].img, "has_radar");
+});

@@ -77,7 +77,27 @@ function isValidRankBy(value) {
 }
 
 function getRankMetricValue(song, rankBy) {
-  if (!song || !song.radar || !isValidRankBy(rankBy)) {
+  if (!song || !isValidRankBy(rankBy)) {
+    return null;
+  }
+
+  if (rankBy === "notes") {
+    if (song.radar) {
+      const radarNotes = Number(song.radar.total_notes);
+      if (Number.isFinite(radarNotes)) {
+        return radarNotes;
+      }
+    }
+
+    const csvNotes = Number(song.notes);
+    if (Number.isFinite(csvNotes)) {
+      return csvNotes;
+    }
+
+    return null;
+  }
+
+  if (!song.radar) {
     return null;
   }
 

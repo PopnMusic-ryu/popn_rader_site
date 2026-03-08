@@ -58,6 +58,24 @@
               <option value="">すべて</option>
             </select>
           </label>
+          <label class="field">
+            <span>メイン表示</span>
+            <select id="primary-view-select" name="primaryView">
+              <option value="genre">ジャンル名</option>
+              <option value="title">曲名</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>レーダーランキング</span>
+            <select id="rank-by-select" name="rankBy">
+              <option value="">なし</option>
+              <option value="notes">NOTES</option>
+              <option value="chord">CHORD</option>
+              <option value="peak">PEAK</option>
+              <option value="longpop">LONGPOP</option>
+              <option value="soflan">SOF-LAN</option>
+            </select>
+          </label>
         </form>
         <p id="result-summary" class="result-summary">検索中...</p>
       </section>
@@ -137,24 +155,24 @@
             <table class="radar-table">
               <tbody>
                 <tr>
-                  <th>total_notes</th>
+                  <th>NOTES</th>
                   <td id="radar-total-notes">-</td>
                 </tr>
                 <tr>
-                  <th>total_chords</th>
+                  <th>CHORD</th>
                   <td id="radar-total-chords">-</td>
                 </tr>
                 <tr>
-                  <th>max_notes_calc</th>
+                  <th>PEAK</th>
                   <td id="radar-max-notes">-</td>
                 </tr>
                 <tr>
-                  <th>soflan</th>
-                  <td id="radar-soflan">-</td>
+                  <th>LONGPOP</th>
+                  <td id="radar-longpop">-</td>
                 </tr>
                 <tr>
-                  <th>longpop</th>
-                  <td id="radar-longpop">-</td>
+                  <th>SOF-LAN</th>
+                  <td id="radar-soflan">-</td>
                 </tr>
               </tbody>
             </table>

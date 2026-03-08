@@ -3,6 +3,7 @@ const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const { isValidRankBy } = require("./lib/musicRepository");
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
 const INDEX_HTML_PATH = path.join(PUBLIC_DIR, "index.html");
 
@@ -96,6 +97,10 @@ function createApp({
   app.get("/api/songs", (req, res) => {
     const query = String(req.query.q ?? "").slice(0, 100);
     const levelParam = req.query.level;
+    const rankByParam = String(req.query.rankBy ?? "")
+      .trim()
+      .toLowerCase();
+    const rankBy = rankByParam || null;
     const parsedLevel =
       levelParam === undefined || levelParam === ""
         ? null
@@ -104,6 +109,9 @@ function createApp({
     if (levelParam !== undefined && levelParam !== "" && !isValidLevel(parsedLevel)) {
       return res.status(400).json({ error: "Invalid level" });
     }
+    if (rankBy !== null && !isValidRankBy(rankBy)) {
+      return res.status(400).json({ error: "Invalid rankBy" });
+    }
 
     const limit = parseLimit(req.query.limit, searchLimitDefault, searchLimitMax);
 
@@ -111,11 +119,13 @@ function createApp({
       query,
       level: parsedLevel,
       limit,
+      rankBy,
     });
 
     return res.json({
       totalMatched: result.totalMatched,
       count: result.items.length,
+      rankBy: result.rankBy,
       items: result.items,
     });
   });

@@ -33,3 +33,13 @@ test("MusicRepository.search filters by query and level", () => {
   assert.equal(noMatch.totalMatched, 0);
   assert.equal(noMatch.items.length, 0);
 });
+
+test("MusicRepository.search supports radar ranking", () => {
+  const repository = MusicRepository.loadFromDisk(fixtureRoot);
+  const ranked = repository.search({ rankBy: "notes", limit: 10 });
+
+  assert.equal(ranked.totalMatched, 1);
+  assert.equal(ranked.rankBy, "notes");
+  assert.equal(ranked.items[0].ranking, 1);
+  assert.equal(ranked.items[0].rankBy, "notes");
+});

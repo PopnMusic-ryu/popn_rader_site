@@ -1,14 +1,19 @@
 const state = {
   query: "",
   level: "",
+  primaryView: "title",
+  rankBy: "",
   items: [],
   totalMatched: 0,
   activeSongId: null,
 };
 
 const dom = {
+  searchForm: document.querySelector("#search-form"),
   queryInput: document.querySelector("#query-input"),
   levelSelect: document.querySelector("#level-select"),
+  primaryViewSelect: document.querySelector("#primary-view-select"),
+  rankBySelect: document.querySelector("#rank-by-select"),
   resultSummary: document.querySelector("#result-summary"),
   songList: document.querySelector("#song-list"),
   emptyState: document.querySelector("#empty-state"),
@@ -32,6 +37,14 @@ const dom = {
   radarLongpop: document.querySelector("#radar-longpop"),
 };
 
+const RANK_LABELS = Object.freeze({
+  notes: "NOTES",
+  chord: "CHORD",
+  peak: "PEAK",
+  longpop: "LONGPOP",
+  soflan: "SOF-LAN",
+});
+
 function debounce(fn, waitMs) {
   let timer = null;
   return (...args) => {
@@ -47,18 +60,46 @@ function formatNumber(value) {
   return Number(value).toLocaleString("ja-JP");
 }
 
+function getRankLabel(rankBy) {
+  if (!rankBy) {
+    return "";
+  }
+  return RANK_LABELS[rankBy] ?? String(rankBy).toUpperCase();
+}
+
+function getMainDisplayText(song) {
+  if (state.primaryView === "genre") {
+    return song.genre || "-";
+  }
+  return song.title || "-";
+}
+
+function getSecondaryDisplayText(song) {
+  if (state.primaryView === "genre") {
+    return song.title || "-";
+  }
+  return song.genre || "-";
+}
+
 function createSongCard(song) {
   const card = document.createElement("li");
   card.className = "song-card";
 
   const title = document.createElement("h3");
-  title.textContent = song.title;
+  title.textContent = getMainDisplayText(song);
+
+  let rank = null;
+  if (Number.isInteger(song.ranking) && song.ranking > 0 && song.rankBy) {
+    rank = document.createElement("p");
+    rank.className = "song-rank";
+    rank.textContent = `${getRankLabel(song.rankBy)} Rank #${song.ranking}`;
+  }
 
   const meta = document.createElement("p");
   meta.className = "song-meta";
-  meta.textContent = `${song.genre} / Lv${song.level} / BPM ${song.bpm} / NOTES ${formatNumber(
-    song.notes
-  )}`;
+  meta.textContent = `${getSecondaryDisplayText(song)} / Lv${song.level} / BPM ${
+    song.bpm
+  } / NOTES ${formatNumber(song.notes)}`;
 
   const detailButton = document.createElement("button");
   detailButton.type = "button";
@@ -68,7 +109,11 @@ function createSongCard(song) {
     void openSongDetail(song.level, song.img);
   });
 
-  card.append(title, meta, detailButton);
+  if (rank) {
+    card.append(title, rank, meta, detailButton);
+  } else {
+    card.append(title, meta, detailButton);
+  }
   return card;
 }
 
@@ -83,9 +128,12 @@ function renderSongs() {
 
   dom.emptyState.hidden = state.items.length !== 0;
 
+  const rankingText = state.rankBy
+    ? ` / ${getRankLabel(state.rankBy)}ランキング順`
+    : "";
   const countText = `${state.totalMatched.toLocaleString(
     "ja-JP"
-  )} 件ヒット / ${state.items.length.toLocaleString("ja-JP")} 件表示`;
+  )} 件ヒット / ${state.items.length.toLocaleString("ja-JP")} 件表示${rankingText}`;
   dom.resultSummary.textContent = countText;
 }
 
@@ -107,6 +155,9 @@ async function fetchSongs() {
   if (state.level) {
     params.set("level", state.level);
   }
+  if (state.rankBy) {
+    params.set("rankBy", state.rankBy);
+  }
 
   const response = await fetch(`/api/songs?${params.toString()}`);
   if (!response.ok) {
@@ -115,6 +166,7 @@ async function fetchSongs() {
   const payload = await response.json();
   state.items = payload.items ?? [];
   state.totalMatched = payload.totalMatched ?? state.items.length;
+  state.rankBy = payload.rankBy || "";
   renderSongs();
 }
 
@@ -130,7 +182,9 @@ function resetModalFields() {
   dom.radarMaxNotes.textContent = "-";
   dom.radarSoflan.textContent = "-";
   dom.radarLongpop.textContent = "-";
-  dom.modalRadarImage.src = "";
+  dom.modalRadarImage.hidden = false;
+  dom.modalRadarImage.removeAttribute("src");
+  dom.radarImageFallback.hidden = true;
 }
 
 function showModal() {
@@ -149,7 +203,6 @@ async function openSongDetail(level, img) {
   state.activeSongId = songId;
   resetModalFields();
   dom.modalTitle.textContent = "読み込み中...";
-  dom.radarImageFallback.hidden = true;
   showModal();
 
   try {
@@ -182,6 +235,7 @@ async function openSongDetail(level, img) {
     dom.radarLongpop.textContent = formatNumber(radar.longpop);
 
     if (song.radarImageUrl) {
+      dom.radarImageFallback.hidden = true;
       dom.modalRadarImage.hidden = false;
       dom.modalRadarImage.src = song.radarImageUrl;
     } else {
@@ -226,6 +280,30 @@ function registerEvents() {
     });
   });
 
+  dom.primaryViewSelect.addEventListener("change", (event) => {
+    state.primaryView = event.target.value === "genre" ? "genre" : "title";
+    renderSongs();
+  });
+
+  dom.rankBySelect.addEventListener("change", (event) => {
+    state.rankBy = event.target.value;
+    void fetchSongs().catch((error) => {
+      console.error(error);
+      dom.resultSummary.textContent = "検索に失敗しました";
+    });
+  });
+
+  dom.searchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    state.query = dom.queryInput.value;
+    state.level = dom.levelSelect.value;
+    state.rankBy = dom.rankBySelect.value;
+    void fetchSongs().catch((error) => {
+      console.error(error);
+      dom.resultSummary.textContent = "検索に失敗しました";
+    });
+  });
+
   dom.detailModal.addEventListener("click", (event) => {
     const target = event.target;
     if (
@@ -243,13 +321,23 @@ function registerEvents() {
   });
 
   dom.modalRadarImage.addEventListener("error", () => {
+    if (!dom.modalRadarImage.getAttribute("src")) {
+      return;
+    }
     dom.modalRadarImage.hidden = true;
     dom.radarImageFallback.hidden = false;
+  });
+
+  dom.modalRadarImage.addEventListener("load", () => {
+    dom.modalRadarImage.hidden = false;
+    dom.radarImageFallback.hidden = true;
   });
 }
 
 async function bootstrap() {
   buildLevelOptions();
+  state.primaryView = dom.primaryViewSelect.value === "genre" ? "genre" : "title";
+  state.rankBy = dom.rankBySelect.value || "";
   registerEvents();
 
   try {

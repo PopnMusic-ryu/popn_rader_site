@@ -46,5 +46,15 @@ test("GET /api/songs/:level/:img returns details", async () => {
 test("GET /api/songs validates parameters", async () => {
   const app = buildTestApp();
   await request(app).get("/api/songs?level=500").expect(400);
+  await request(app).get("/api/songs?rankBy=invalid").expect(400);
   await request(app).get("/api/songs/99/toy_contemporary_ex_").expect(400);
+});
+
+test("GET /api/songs supports ranking condition", async () => {
+  const app = buildTestApp();
+  const response = await request(app).get("/api/songs?rankBy=notes").expect(200);
+
+  assert.equal(response.body.rankBy, "notes");
+  assert.equal(response.body.items[0].ranking, 1);
+  assert.equal(response.body.items[0].rankBy, "notes");
 });

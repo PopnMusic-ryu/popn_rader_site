@@ -7,7 +7,7 @@
 ## 入力データ
 - `music/<level>/<level>.csv`
   - 楽曲メタ情報を保持。
-- `music/<level>/<music_name>/detected_results.json`
+- `music/<level>/<music_name>/detect_results.json`
   - 譜面レーダー値を保持。
 - `music/<level>/<music_name>/radar.png`
   - 譜面レーダー画像を保持。

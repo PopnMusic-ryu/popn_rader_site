@@ -221,7 +221,7 @@ class MusicRepository {
 
       for (const record of records) {
         const songDir = path.join(levelDir, record.img);
-        const radarJsonPath = path.join(songDir, "detected_results.json");
+        const radarJsonPath = path.join(songDir, "detect_results.json");
         const radar = safeReadRadarJson(radarJsonPath);
         const radarImageFileName = findRadarImageFile(songDir);
         const id = buildSongId(level, record.img);

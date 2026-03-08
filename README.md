@@ -25,7 +25,7 @@ music/
     49.csv
     toy_contemporary_ex_/
       radar.png
-      detected_results.json
+      detect_results.json
 src/
 public/
 tests/

@@ -144,6 +144,7 @@ body {
   background: rgba(255, 255, 255, 0.03);
   display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .song-card h3 {
@@ -161,24 +162,22 @@ body {
   margin: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   width: fit-content;
-  min-height: 26px;
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 0.76rem;
   font-weight: 700;
   line-height: 1;
-  white-space: nowrap;
   color: #04212c;
   background: linear-gradient(90deg, var(--accent), var(--accent-warm));
+  white-space: nowrap;
+  align-self: start;
 }
 
 .detail-button {
   border: none;
   border-radius: 10px;
   padding: 9px 11px;
-  min-height: 38px;
   font-weight: 700;
   cursor: pointer;
   color: #032531;
@@ -186,8 +185,9 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
+  line-height: 1.2;
   white-space: nowrap;
+  align-self: start;
 }
 
 .empty-state {

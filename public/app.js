@@ -216,7 +216,7 @@ function renderSongs() {
     meta.className = "song-meta";
     meta.textContent = `${getSecondaryDisplayText(song)} / Lv${song.level} / BPM ${
       song.bpm
-    } / NOTES ${formatNumber(song.notes)}`;
+    }`;
 
     const button = document.createElement("button");
     button.type = "button";

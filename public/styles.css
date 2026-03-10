@@ -159,12 +159,17 @@ body {
 
 .song-rank {
   margin: 0;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: fit-content;
+  min-height: 26px;
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 0.76rem;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
   color: #04212c;
   background: linear-gradient(90deg, var(--accent), var(--accent-warm));
 }
@@ -173,10 +178,16 @@ body {
   border: none;
   border-radius: 10px;
   padding: 9px 11px;
+  min-height: 38px;
   font-weight: 700;
   cursor: pointer;
   color: #032531;
   background: linear-gradient(90deg, var(--accent), var(--accent-warm));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .empty-state {

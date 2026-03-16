@@ -31,6 +31,7 @@ function createApp({
   repository,
   musicRoot,
   adminMessage,
+  explainMessage,
   contactFormUrl,
   searchLimitDefault,
   searchLimitMax,
@@ -89,6 +90,7 @@ function createApp({
   app.get("/api/meta", (_req, res) => {
     res.json({
       adminMessage,
+      explainMessage,
       contactFormUrl,
       summary: repository.getSummary(),
     });

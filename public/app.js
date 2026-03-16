@@ -1,3 +1,5 @@
+const e = require("express");
+
 const DEFAULT_LIMIT = 120;
 
 const state = {
@@ -24,6 +26,7 @@ const dom = {
   songList: document.querySelector("#song-list"),
   emptyState: document.querySelector("#empty-state"),
   adminMessage: document.querySelector("#admin-message"),
+  explainMessage: document.querySelector("#explain-message"),
   contactLink: document.querySelector("#contact-link"),
   detailModal: document.querySelector("#detail-modal"),
   modalTitle: document.querySelector("#modal-title"),
@@ -251,6 +254,7 @@ function renderSongs() {
 
 function applyMeta(meta) {
   dom.adminMessage.textContent = meta?.adminMessage ?? "";
+  dom.explainMessage.textContent = meta?.explainMessage ?? "";
   dom.contactLink.href = meta?.contactFormUrl ?? "#";
 }
 
@@ -568,8 +572,8 @@ async function bootstrap() {
   } catch (error) {
     console.error(error);
     dom.adminMessage.textContent = "メッセージの読み込みに失敗しました";
+    dom.explainMessage.textContent = "読み込みに失敗しました";
   }
-
   try {
     await fetchSongs();
   } catch (error) {

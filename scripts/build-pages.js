@@ -34,6 +34,7 @@ function build() {
 
   const meta = {
     adminMessage: config.ADMIN_MESSAGE,
+    explainMessage: config.EXPLAIN_MESSAGE,
     contactFormUrl: config.CONTACT_FORM_URL,
     summary,
     generatedAt: new Date().toISOString(),

@@ -8,6 +8,7 @@ const app = createApp({
   repository,
   musicRoot: config.MUSIC_ROOT,
   adminMessage: config.ADMIN_MESSAGE,
+  explainMessage: config.EXPLAIN_MESSAGE,
   contactFormUrl: config.CONTACT_FORM_URL,
   searchLimitDefault: config.SEARCH_LIMIT_DEFAULT,
   searchLimitMax: config.SEARCH_LIMIT_MAX,

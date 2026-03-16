@@ -1,5 +1,3 @@
-const e = require("express");
-
 const DEFAULT_LIMIT = 120;
 
 const state = {

@@ -48,6 +48,17 @@ function safeReadRadarJson(filePath) {
   }
 }
 
+function loadRadarForSongDir(songDir) {
+  const candidateNames = ["detect_results.json", "detected_results.json"];
+  for (const name of candidateNames) {
+    const radar = safeReadRadarJson(path.join(songDir, name));
+    if (radar) {
+      return radar;
+    }
+  }
+  return null;
+}
+
 function createSearchText(song) {
   return [
     song.ver,
@@ -221,8 +232,7 @@ class MusicRepository {
 
       for (const record of records) {
         const songDir = path.join(levelDir, record.img);
-        const radarJsonPath = path.join(songDir, "detect_results.json");
-        const radar = safeReadRadarJson(radarJsonPath);
+        const radar = loadRadarForSongDir(songDir);
         const radarImageFileName = findRadarImageFile(songDir);
         const id = buildSongId(level, record.img);
 

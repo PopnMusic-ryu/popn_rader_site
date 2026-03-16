@@ -6,10 +6,10 @@ const DEFAULT_ADMIN_MESSAGE =
 const DEFAULT_CONTACT_FORM_URL = "https://forms.gle/FCHDyx5wkmjwZ5m48";
 const DEFAULT_EXPLAIN_MESSAGE =
   "基本的にIIDXの楽曲レーダーを参考に作成しており、以下の値をもとに各値を計算しています。\n"+
-  "NOTES:総ノーツ数\n"+
-  "CHORD:同時押し\n"+
-  "PEAK:密度\n"+
-  "LONGPOP:ロングポップ君\n"+
+  "NOTES:総ノーツ数/\n"+
+  "CHORD:同時押し/\n"+
+  "PEAK:密度/\n"+
+  "LONGPOP:ロングポップ君/\n"+
   "SOF-LAN:速度変化";
 
 function toPositiveInt(value, fallback) {

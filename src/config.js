@@ -1,8 +1,9 @@
 const path = require("path");
 
 const DEFAULT_ADMIN_MESSAGE =
-  "管理者からのお知らせ: 本サイトは pop'n music 譜面研究用の非公式データビューアです。";
-const DEFAULT_CONTACT_FORM_URL = "https://forms.gle/example";
+  "2026/03/17:テスト運用中です。現在レベル50の楽曲のみレーダー化しています。\n"+
+  "この曲の値おかしいぞ！！と思ったら気軽にお問い合わせくださいm(_ _)m）";
+const DEFAULT_CONTACT_FORM_URL = "https://forms.gle/FCHDyx5wkmjwZ5m48";
 
 function toPositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
